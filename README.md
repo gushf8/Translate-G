@@ -8,6 +8,7 @@
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri&logoColor=white)](https://v2.tauri.app/)
 [![Rust](https://img.shields.io/badge/Rust-Backend-orange?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald?style=flat-square)](LICENSE)
+[![ORCID](https://img.shields.io/badge/ORCID-0009--0006--6570--2582-A6CE39?style=flat-square&logo=orcid&logoColor=white)](https://orcid.org/0009-0006-6570-2582)
 
 <p align="center">
   Diseñado para usuarios, investigadores y desarrolladores que requieren traducción instantánea de documentos técnicos, fragmentos de código y texto en pantalla sin el consumo de memoria de clientes pesados ni depender de API Keys de pago.
@@ -79,4 +80,6 @@ El instalador optimizado se generará en `src-tauri/target/release/bundle/`.
 
 Distribuido bajo los términos de la **Licencia MIT**. Consulte el archivo [LICENSE](LICENSE) para conocer los términos completos de uso y distribución.
 
-Desarrollado y mantenido por [Gustavo Fernando Huamán Fernández](https://github.com/gushf8).
+**Autor:** [Gustavo Fernando Huaman Fernandez](https://github.com/gushf8)  
+**ORCID:** [0009-0006-6570-2582](https://orcid.org/0009-0006-6570-2582)  
+**Filiación:** Universidad Nacional de Huancavelica (UNH)
