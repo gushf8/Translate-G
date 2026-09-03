@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Pantalla OCR</title>
+    <link rel="icon" type="image/png" href="contents/16.png">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: transparent;
+            user-select: none;
+            cursor: crosshair;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        #screenshot-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: block;
+        }
+
+        /* PowerToys-style instruction floating badge */
+        #hint-banner {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #ffffff;
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.2px;
+            animation: banner-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes banner-pop {
+            from { transform: translateX(-50%) translateY(-10px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        #hint-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a73e8;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        #dim-pill {
+            position: absolute;
+            display: none;
+            background: #1a73e8;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 99;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="hint-banner">
+        <div id="hint-icon">✂</div>
+        <span>Arrastra para seleccionar el texto a traducir (Esc o Clic Derecho para cancelar)</span>
+    </div>
+    <div id="dim-pill"></div>
+    <canvas id="screenshot-canvas"></canvas>
+
+    <script>
+        // Tauri v2 API integration
+        const { invoke } = window.__TAURI__.core;
+        const { getCurrentWebviewWindow, WebviewWindow } = window.__TAURI__.webviewWindow;
+        const { listen } = window.__TAURI__.event;
+
+        const ocrWindow = getCurrentWebviewWindow();
+        const canvas = document.getElementById('screenshot-canvas');
+        const ctx = canvas.getContext('2d');
+        const dimPill = document.getElementById('dim-pill');
+
+        let screenImage = new Image();
+        let isDrawing = false;
+        let startX = 0;
+        let startY = 0;
+        let endX = 0;
+        let endY = 0;
+        let screenWidth = window.screen.width;
+        let screenHeight = window.screen.height;
+        let base64Screenshot = "";
+        let isCapturing = false;
+
+        // Initialize and capture
+        async function initOCR(incomingData) {
+            if (isCapturing) return;
+            isCapturing = true;
+
+            try {
+                // Ensure canvas matches viewport
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Reset drawing selection states
+                isDrawing = false;
+                startX = 0;
+                startY = 0;
+                endX = 0;
+                endY = 0;
+
+                let result = incomingData;
+                if (!result || !result.image) {
+                    // Fallback to manual invoke if payload wasn't provided
+                    result = await invoke('get_capture_screen');
+                }
+
+                base64Screenshot = result.image;
+                screenWidth = result.width;
+                screenHeight = result.height;
+
+                screenImage = new Image();
+                screenImage.onload = () => {
+                    drawCanvas();
+                    isCapturing = false;
+                };
+                screenImage.onerror = () => {
+                    console.error("Failed to load capture image into Image element");
+                    isCapturing = false;
+                    cancelOCR();
+                };
+                screenImage.src = base64Screenshot;
+            } catch (err) {
+                console.error("Failed to capture screen:", err);
+                isCapturing = false;
+                cancelOCR();
+            }
+        }
+
+        function drawCanvas() {
+            if (!screenImage.complete || screenImage.naturalWidth === 0) return;
+
+            // 1. Draw full screen image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(screenImage, 0, 0, canvas.width, canvas.height);
+
+            // 2. Dark semi-transparent scrim (like PowerToys / Snipping Tool)
+            ctx.fillStyle = 'rgba(10, 15, 30, 0.52)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (isDrawing) {
+                const rect = getNormalizedRect();
+                if (rect.w > 0 && rect.h > 0) {
+                    // 3. Clear selected area to reveal bright clear image
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+                    ctx.clip();
+                    ctx.drawImage(screenImage, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+
+                    // 4. Draw vibrant selection border
+                    ctx.strokeStyle = '#1a73e8';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+                    // 5. Draw accent corners
+                    ctx.fillStyle = '#1a73e8';
+                    const cornerSize = 7;
+                    ctx.fillRect(rect.x - 1, rect.y - 1, cornerSize, cornerSize);
+                    ctx.fillRect(rect.x + rect.w - cornerSize + 1, rect.y - 1, cornerSize, cornerSize);
+                    ctx.fillRect(rect.x - 1, rect.y + rect.h - cornerSize + 1, cornerSize, cornerSize);
+                    ctx.fillRect(rect.x + rect.w - cornerSize + 1, rect.y + rect.h - cornerSize + 1, cornerSize, cornerSize);
+
+                    // 6. Update dimension pill
+                    dimPill.style.display = 'block';
+                    dimPill.innerText = `${Math.round(rect.w)} × ${Math.round(rect.h)}`;
+                    dimPill.style.left = `${rect.x}px`;
+                    dimPill.style.top = `${Math.max(10, rect.y - 25)}px`;
+                }
+            } else {
+                dimPill.style.display = 'none';
+            }
+        }
+
+        function getNormalizedRect() {
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            const w = Math.abs(startX - endX);
+            const h = Math.abs(startY - endY);
+            return { x, y, w, h };
+        }
+
+        // Cancel on Escape key (capture phase on window and document)
+        const handleEscapeKey = (e) => {
+            if (e.key === 'Escape' || e.code === 'Escape' || e.keyCode === 27) {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelOCR();
+            }
+        };
+        window.addEventListener('keydown', handleEscapeKey, true);
+        window.addEventListener('keyup', handleEscapeKey, true);
+        document.addEventListener('keydown', handleEscapeKey, true);
+
+        // Cancel on Right Click (contextmenu, pointerdown, mousedown)
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            cancelOCR();
+        }, true);
+
+        window.addEventListener('pointerdown', (e) => {
+            if (e.button === 2) {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelOCR();
+            }
+        }, true);
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelOCR();
+            } else if (e.button === 0) { // Left click
+                isDrawing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                endX = e.clientX;
+                endY = e.clientY;
+                drawCanvas();
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            endX = e.clientX;
+            endY = e.clientY;
+            drawCanvas();
+        });
+
+        window.addEventListener('mouseup', async (e) => {
+            if (e.button === 2) {
+                cancelOCR();
+                return;
+            }
+            if (!isDrawing) return;
+            isDrawing = false;
+            dimPill.style.display = 'none';
+
+            const rect = getNormalizedRect();
+            if (rect.w > 8 && rect.h > 8) {
+                // Instantly hide OCR overlay window
+                try {
+                    await ocrWindow.hide();
+                } catch (_) {}
+
+                // Compute crop coordinates normalized to original screenshot resolution
+                const scaleX = screenWidth / canvas.width;
+                const scaleY = screenHeight / canvas.height;
+
+                const cropX = Math.round(rect.x * scaleX);
+                const cropY = Math.round(rect.y * scaleY);
+                const cropWidth = Math.round(rect.w * scaleX);
+                const cropHeight = Math.round(rect.h * scaleY);
+
+                try {
+                    // Send to backend for high-speed OCR extraction
+                    const text = await invoke('run_ocr', {
+                        cropX,
+                        cropY,
+                        cropWidth,
+                        cropHeight,
+                        base64Screenshot
+                    });
+
+                    // Trigger main window to translate text immediately
+                    const mainWin = WebviewWindow.getByLabel('main');
+                    if (mainWin) {
+                        try {
+                            await mainWin.unminimize();
+                            await mainWin.show();
+                            await mainWin.setFocus();
+                        } catch (_) {}
+                        if (text && text.trim().length > 0) {
+                            await mainWin.emit('ocr-text-result', text);
+                        }
+                    }
+                } catch (err) {
+                    console.error("OCR execution error:", err);
+                    await cancelOCR();
+                }
+            } else {
+                drawCanvas();
+            }
+        });
+
+        async function cancelOCR() {
+            isDrawing = false;
+            dimPill.style.display = 'none';
+            try {
+                await invoke('cancel_ocr');
+            } catch (e) {
+                try {
+                    await ocrWindow.hide();
+                    const mainWin = WebviewWindow.getByLabel('main');
+                    if (mainWin) {
+                        await mainWin.unminimize();
+                        await mainWin.show();
+                        await mainWin.setFocus();
+                    }
+                } catch (err) {}
+            }
+        }
+
+        // Listen for capture trigger with screenshot payload
+        listen('start-ocr-capture', (event) => {
+            window.focus();
+            document.body.focus();
+            initOCR(event.payload);
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawCanvas();
+        });
+    </script>
+</body>
+</html>

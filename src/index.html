@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translate G</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="contents/16.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="tf-main-container">
+        <!-- Panel del Traductor -->
+        <div class="tf-translator-pane">
+            <div class="tf-header">
+                <div class="tf-brand-header" title="Translate G">
+                    <img src="contents/48.png" alt="Logo" class="tf-header-logo">
+                </div>
+                <div class="tf-lang-controls">
+                    <div class="tf-quick-langs">
+                        <button class="tf-quick-btn" data-lang="auto" data-side="src">Detectar</button>
+                        <button class="tf-quick-btn" data-lang="es" data-side="src">Es</button>
+                        <button class="tf-quick-btn" data-lang="en" data-side="src">En</button>
+                        <button class="tf-quick-btn" data-lang="pt" data-side="src">Pt</button>
+                    </div>
+                    <select id="tf-src-lang">
+                        <!-- Generado por JS -->
+                    </select>
+                    <button class="tf-swap-btn" title="Intercambiar idiomas">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                    </button>
+                    <select id="tf-target-lang">
+                        <!-- Generado por JS -->
+                    </select>
+                    <div class="tf-quick-langs">
+                        <button class="tf-quick-btn" data-lang="es" data-side="target">Es</button>
+                        <button class="tf-quick-btn" data-lang="en" data-side="target">En</button>
+                        <button class="tf-quick-btn" data-lang="pt" data-side="target">Pt</button>
+                    </div>
+                </div>
+                <!-- Controles del lado derecho -->
+                <div class="tf-right-controls">
+                    <!-- Botón de OCR en Header -->
+                    <button class="tf-ocr-header-btn" title="Capturar pantalla y Traducir (Ctrl+Shift+X)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    </button>
+                    <!-- Botón de Configuración -->
+                    <button class="tf-settings-btn" title="Configuración">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal de Configuración (Overlay Backdrop) -->
+            <div id="tf-settings-modal" class="tf-modal-overlay tf-hidden">
+                <div class="tf-modal-container">
+                    <!-- Modal Header -->
+                    <div class="tf-modal-header">
+                        <div class="tf-modal-title-container">
+                            <img src="contents/48.png" alt="Logo" class="tf-modal-logo">
+                            <h2>Configuración de la Aplicación</h2>
+                        </div>
+                        <button class="tf-modal-close-btn" id="tf-close-settings-btn" title="Cerrar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body (Two columns: Sidebar Tabs and Tab Content) -->
+                    <div class="tf-modal-body">
+                        <!-- Sidebar menu -->
+                        <div class="tf-modal-sidebar">
+                            <button class="tf-tab-btn active" data-tab="general">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                General
+                            </button>
+                            <button class="tf-tab-btn" data-tab="shortcuts">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="14" y2="8"></line><line x1="18" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="18" y2="12"></line></svg>
+                                Atajos y Extensión
+                            </button>
+                            <button class="tf-tab-btn" data-tab="audio">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                Voz Neural
+                            </button>
+                        </div>
+
+                        <!-- Tab contents -->
+                        <div class="tf-modal-content">
+                            <!-- Tab: General -->
+                            <div class="tf-tab-pane" id="tf-tab-general">
+                                <div class="tf-setting-group">
+                                    <label class="tf-group-title">Idiomas de Traducción</label>
+                                    
+                                    <div class="tf-setting-row">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Idioma Base (Destino)</span>
+                                            <span class="tf-setting-desc">Idioma predeterminado al que se traducirá el texto.</span>
+                                        </div>
+                                        <select id="tf-base-lang-select" class="tf-select-custom">
+                                            <option value="es">Español</option>
+                                            <option value="en">Inglés</option>
+                                            <option value="pt">Portugués</option>
+                                            <option value="fr">Francés</option>
+                                            <option value="de">Alemán</option>
+                                            <option value="it">Italiano</option>
+                                            <option value="ja">Japonés</option>
+                                            <option value="zh">Chino</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="tf-setting-row">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Idioma de Intercambio (Smart)</span>
+                                            <span class="tf-setting-desc">Idioma secundario al que se intercambiará el texto si ya está en el idioma base.</span>
+                                        </div>
+                                        <select id="tf-smart-lang-select" class="tf-select-custom">
+                                            <option value="en">Inglés</option>
+                                            <option value="es">Español</option>
+                                            <option value="pt">Portugués</option>
+                                            <option value="fr">Francés</option>
+                                            <option value="de">Alemán</option>
+                                            <option value="it">Italiano</option>
+                                            <option value="ja">Japonés</option>
+                                            <option value="zh">Chino</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="tf-setting-group" style="margin-top: 20px;">
+                                    <label class="tf-group-title">Apariencia y Tipografía</label>
+                                    
+                                    <div class="tf-setting-row">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Tipo de Letra (Fuente)</span>
+                                            <span class="tf-setting-desc">Tipografía predeterminada para los editores de texto.</span>
+                                        </div>
+                                        <select id="tf-font-family-select" class="tf-select-custom">
+                                            <option value="'Segoe UI', system-ui, -apple-system, sans-serif">Segoe UI (Sistema)</option>
+                                            <option value="'Inter', sans-serif">Inter</option>
+                                            <option value="'Roboto', sans-serif">Roboto</option>
+                                            <option value="'Outfit', sans-serif">Outfit</option>
+                                            <option value="'Open Sans', sans-serif">Open Sans</option>
+                                            <option value="'JetBrains Mono', 'Consolas', monospace">Monospace (Código)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="tf-setting-row" style="margin-top: 15px;">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Espaciado entre Líneas</span>
+                                            <span class="tf-setting-desc">Interlineado vertical del texto en los editores.</span>
+                                        </div>
+                                        <select id="tf-line-spacing-select" class="tf-select-custom">
+                                            <option value="1.0">1.0 (Compacto)</option>
+                                            <option value="1.15">1.15 (Estándar)</option>
+                                            <option value="1.5">1.5 (Amplio)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="tf-setting-row" style="margin-top: 15px;">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Tamaño de Letra</span>
+                                            <span class="tf-setting-desc">Tamaño del texto en los paneles (Mínimo: 10 pt, Máximo: 36 pt).</span>
+                                        </div>
+                                        <div class="tf-range-container" style="display: flex; align-items: center; gap: 10px;">
+                                            <input type="range" id="tf-font-size" min="10" max="36" step="1" value="19" style="cursor: pointer; width: 120px;">
+                                            <span class="tf-range-val" id="tf-font-size-val" style="font-size: 13px; font-weight: 700; color: #1a73e8; min-width: 45px; text-align: right;">19 pt</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab: Atajos y Extensión -->
+                            <div class="tf-tab-pane tf-hidden" id="tf-tab-shortcuts">
+                                <div class="tf-setting-group">
+                                    <label class="tf-group-title">Integración con el Sistema</label>
+                                    
+                                    <div class="tf-setting-row">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Iniciar con Windows</span>
+                                            <span class="tf-setting-desc">Abrir la aplicación automáticamente al encender el ordenador.</span>
+                                        </div>
+                                        <label class="tf-switch">
+                                            <input type="checkbox" id="tf-autostart-toggle">
+                                            <span class="tf-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="tf-setting-row" style="margin-top: 15px;">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Desactivar doble Ctrl+C ante Extensión</span>
+                                            <span class="tf-setting-desc">Si se detecta que la extensión de Chrome está activa en el navegador, desactiva temporalmente el atajo doble Ctrl+C global de la aplicación para evitar conflictos.</span>
+                                        </div>
+                                        <label class="tf-switch">
+                                            <input type="checkbox" id="tf-disable-ctrlc-toggle">
+                                            <span class="tf-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab: Voz Neural -->
+                            <div class="tf-tab-pane tf-hidden" id="tf-tab-audio">
+                                <div class="tf-setting-group">
+                                    <label class="tf-group-title">Configuración del Lector</label>
+                                    
+                                    <div class="tf-setting-row">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Género de Voz Neural</span>
+                                            <span class="tf-setting-desc">Tipo de voz preferido para la lectura en voz alta (Microsoft Edge Neural TTS).</span>
+                                        </div>
+                                        <div class="tf-voice-toggle">
+                                            <button class="tf-gender-btn" data-gender="female">Femenina</button>
+                                            <button class="tf-gender-btn" data-gender="male">Masculina</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="tf-setting-row" style="margin-top: 15px;">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Velocidad de Voz</span>
+                                            <span class="tf-setting-desc">Ajusta la velocidad de la pronunciación (Normal: 1.0x).</span>
+                                        </div>
+                                        <div class="tf-range-container" style="display: flex; align-items: center; gap: 10px;">
+                                            <input type="range" id="tf-voice-rate" min="0.5" max="1.5" step="0.1" value="1.0" style="cursor: pointer; width: 120px;">
+                                            <span class="tf-range-val" id="tf-voice-rate-val" style="font-size: 13px; font-weight: 700; color: #0284c7; min-width: 40px; text-align: right;">1.0x</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="tf-setting-row" style="margin-top: 15px;">
+                                        <div class="tf-setting-label">
+                                            <span class="tf-setting-name">Tono de Voz</span>
+                                            <span class="tf-setting-desc">Ajusta el tono o gravedad de la voz (Normal: 0).</span>
+                                        </div>
+                                        <div class="tf-range-container" style="display: flex; align-items: center; gap: 10px;">
+                                            <input type="range" id="tf-voice-pitch" min="-20" max="20" step="1" value="0" style="cursor: pointer; width: 120px;">
+                                            <span class="tf-range-val" id="tf-voice-pitch-val" style="font-size: 13px; font-weight: 700; color: #0284c7; min-width: 40px; text-align: right;">0</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="tf-audio-info-card" style="margin-top: 25px;">
+                                        <div class="tf-info-title">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tf-info-icon"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .4 2.5 1.5 3.5.7.8 1.3 1.5 1.5 2.5"></path><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line></svg>
+                                            <span>Sobre Microsoft Edge TTS</span>
+                                        </div>
+                                        <div class="tf-info-text">
+                                            Esta aplicación genera la voz neural leyendo el texto en base a tu preferencia de género y el idioma seleccionado. Utiliza voces fluidas y realistas de última generación de manera local.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Popup de Pronunciación de Texto Seleccionado -->
+            <div id="tf-pronounce-popup" class="tf-hidden">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tf-pronounce-icon"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path class="tf-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path class="tf-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                <span>Pronunciar</span>
+            </div>
+
+            <!-- Contenido Principal Dual Pane -->
+            <div class="tf-content">
+                <div class="tf-dual-pane">
+                    <!-- Original -->
+                    <div class="tf-side tf-input-side">
+                        <div class="tf-side-header">
+                            <label>Original</label>
+                            <span id="tf-detected-label" class="tf-detected-badge tf-hidden">Detectado</span>
+                        </div>
+                        <div class="tf-text-box tf-original" contenteditable="true" spellcheck="false" data-placeholder="Escribe, pega el texto, o usa doble Ctrl+C / OCR..."></div>
+                        <div class="tf-side-actions">
+                            <button class="tf-clear-btn tf-icon-btn" title="Limpiar todo">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                            <button class="tf-audio-input-btn tf-icon-btn" title="Escuchar / Cancelar original">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tf-svg-speaker"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Traducción -->
+                    <div class="tf-side tf-output-side">
+                        <div class="tf-side-header">
+                            <label>Traducción</label>
+                        </div>
+                        <div class="tf-text-box tf-translation" spellcheck="false"></div>
+                        <div class="tf-side-actions">
+                            <button class="tf-copy-btn tf-icon-btn" title="Copiar traducción">
+                                <svg class="tf-icon-copy" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <svg class="tf-icon-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
+                            <button class="tf-audio-btn tf-icon-btn" title="Escuchar / Cancelar traducción">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tf-svg-speaker"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="tf-history-pane">
+            <div class="tf-history-header">Historial</div>
+            <div class="tf-history-list"></div>
+        </div>
+    </div>
+
+    <!-- Script de lógica -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
