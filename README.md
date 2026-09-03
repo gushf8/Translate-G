@@ -18,6 +18,18 @@
 
 ---
 
+## 📸 Vista Previa de la Aplicación
+
+<div align="center">
+  <img src="docs/screenshots/main-interface.png" alt="Interfaz Principal de Translate-G" width="92%" />
+  <p><em>Figura 1: Interfaz principal con traducción en tiempo real, Smart Swap de idiomas y panel lateral de historial.</em></p>
+  <br/>
+  <img src="docs/screenshots/settings-modal.png" alt="Configuración de la Aplicación" width="92%" />
+  <p><em>Figura 2: Modal de configuración con personalización tipográfica, espaciado, atajos globales y voz neural.</em></p>
+</div>
+
+---
+
 ## ⚡ Aspectos Destacados
 
 * **Sin API Keys**: Conexión directa y eficiente con el motor de Google Translate mediante peticiones ligeras y segmentación inteligente de textos extensos.
