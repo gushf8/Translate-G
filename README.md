@@ -2,7 +2,7 @@
 
 # Translate-G
 
-**Traductor de escritorio ultraligero, rápido y sin fricción para Windows.**
+**Traductor de escritorio ultraligero al estilo DeepL (`Ctrl + C + C`), potenciado por Rust y Tauri para Windows.**
 
 [![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?style=flat-square&logo=windows&logoColor=white)](https://github.com/gushf8/Translate-G)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri&logoColor=white)](https://v2.tauri.app/)
@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald?style=flat-square)](LICENSE)
 
 <p align="center">
-  Diseñado para usuarios, investigadores y desarrolladores que requieren traducción instantánea de documentos técnicos, fragmentos de código y texto en pantalla sin el consumo de memoria de clientes pesados ni depender de API Keys de pago.
+  Diseñado para usuarios, investigadores y desarrolladores que requieren traducción instantánea de documentos técnicos, fragmentos de código y texto en pantalla seleccionando cualquier texto y pulsando <b>Ctrl + C + C</b>, sin consumo excesivo de memoria ni depender de API Keys de pago.
 </p>
 
 </div>
@@ -31,9 +31,10 @@
 
 ## ⚡ Aspectos Destacados
 
+* **Flujo Instantáneo al estilo DeepL (Doble `Ctrl + C`)**: Selecciona cualquier texto en un navegador, PDF, Word o terminal y presiona **Ctrl + C + C** para abrir la ventana flotante y traducir al instante sin interrumpir tu flujo de trabajo.
 * **Sin API Keys**: Conexión directa y eficiente con el motor de Google Translate mediante peticiones ligeras y segmentación inteligente de textos extensos.
 * **Smart Language Swap**: Reconocimiento automático bidireccional de idioma de entrada y destino para alternar sin interrupciones.
-* **Atajos Globales**: Invocación y traducción inmediata desde cualquier ventana o aplicación en Windows mediante atajos de teclado configurables.
+* **Atajos Globales de Windows**: Hook de teclado nativo en Rust de bajísimo consumo que monitorea pulsaciones globales con total fluidez.
 * **Limpieza Técnica de Texto**: Normalización de saltos de línea irregulares en PDFs, eliminación de espacios superfluos y preservación de sintaxis en fórmulas o fragmentos técnicos.
 * **Consumo Mínimo de Recursos**: Construido sobre Rust y Microsoft WebView2 nativo, garantizando una huella de memoria RAM significativamente inferior frente a alternativas basadas en Electron.
 * **Audio y Pronunciación**: Soporte Text-to-Speech (TTS) integrado para validación fonética inmediata.
