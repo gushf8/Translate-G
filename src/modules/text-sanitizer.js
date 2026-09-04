@@ -52,6 +52,57 @@ export function renderMarkdownFormatting(text) {
     return text;
 }
 
+export function isStructuralLine(line) {
+    if (!line) return false;
+    const trimmed = line.replace(/<[^>]+>/g, '').trim();
+    if (!trimmed) return false;
+    
+    // 1. Bullets (-, *, •, +, >, ▪, ▫, –, —)
+    if (/^[-*•+>▪▫–—]\s+/.test(trimmed)) return true;
+    
+    // 2. Numbered & hierarchical lists (1., 1.1, 1.1.1, (1), 1), a., a), (a), i., I.)
+    if (/^(\(?\d+[\.\)]|\(?[a-zA-Z][\.\)]|\d+(\.\d+)+[\.\)]?|[IVXLCDM]+[\.\)])\s+/i.test(trimmed)) return true;
+    
+    // 3. Colon labels including digits & symbols (H0:, H1:, Ha:, Paso 1:, Step 1:, Nota:, Fuente:, Speaker 1:, Q:)
+    if (/^[A-ZÁÉÍÓÚÑa-záéíóúñ0-9\s_\-\.\(\)\/]{1,35}:(?!\/)/i.test(trimmed)) return true;
+    
+    // 4. Markdown headers (# Title) or HTML bold headers (<b>Title</b>)
+    if (/^#{1,6}\s+/.test(trimmed) || /^<b>[^<]{2,60}<\/b>$/.test(line.trim())) return true;
+    
+    // 5. Standalone short headings / titles (< 60 chars)
+    if (trimmed.length < 60) {
+        const isCapitalized = /^[A-ZÁÉÍÓÚÑ0-9]/.test(trimmed);
+        const endsWithPunct = /[,;\-–—]$/.test(trimmed);
+        const endsWithConjunction = /\b(y|e|o|u|que|de|en|con|para|por|el|la|los|las|un|una|and|or|to|with|for|of|in|the|a|an)\s*$/i.test(trimmed);
+        
+        if (isCapitalized && !endsWithPunct && !endsWithConjunction) {
+            // Known academic keywords or uppercase section headers
+            if (/^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo|hip[oó]tesis|paso|step|etapa|fase|tabla|figura|anexo)/i.test(trimmed)) {
+                return true;
+            }
+            if (/^(\d+[\.\)]|\d+(\.\d+)+)/.test(trimmed)) {
+                return true;
+            }
+            // All-caps short headings (e.g. "PLANTEAMIENTO DEL PROBLEMA")
+            if (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{3,50}$/.test(trimmed) && trimmed.length >= 3) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+export function isHeadingLine(line) {
+    if (!line) return false;
+    const trimmed = line.replace(/<[^>]+>/g, '').trim();
+    if (!trimmed || trimmed.length > 70) return false;
+    if (/^#{1,6}\s+/.test(trimmed) || /^<b>[^<]{2,60}<\/b>$/.test(line.trim())) return true;
+    if (/^(\d+[\.\)]|\d+(\.\d+)+|[IVXLCDM]+[\.\)])\s+[A-ZÁÉÍÓÚÑ]/.test(trimmed) && !trimmed.endsWith('.')) return true;
+    if (/^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo|paso\s*\d+|step\s*\d+|etapa\s*\d+|fase\s*\d+)/i.test(trimmed) && !trimmed.endsWith('.')) return true;
+    if (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{4,60}$/.test(trimmed) && !/[,;.]$/.test(trimmed)) return true;
+    return false;
+}
+
 export function cleanOcrAndScanText(text) {
     if (!text) return '';
     
@@ -85,19 +136,11 @@ export function cleanOcrAndScanText(text) {
             
             let prev = merged[merged.length - 1];
             
-            // Check if current line is a distinct structural item that MUST start a new line:
-            // 1. Bullet point: -, *, •, +, >, etc.
-            const isBullet = /^[-*•+>]\s+/.test(current);
-            // 2. Numbered list: 1., 1), (1), a., a), (a), 1.1, etc.
-            const isNumberedList = /^(\(?\d+[\.\)]|\(?[a-zA-Z][\.\)]|\d+(\.\d+)+[\.\)]?)\s+/.test(current);
-            // 3. Speaker / Dialogue: 'Name:', 'Speaker 1:', 'Q:', 'A:' (ensure not URL like http:)
-            const isSpeaker = /^[A-ZÁÉÍÓÚÑa-záéíóúñ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{0,25}:(?!\/)\s*/.test(current);
-            // 4. Markdown Header: # Header
-            const isHeader = /^#{1,6}\s+/.test(current);
-            // 5. Short standalone title/heading (e.g. CAPITULO I, RESUMEN, ABSTRACT, 1. INTRODUCCION)
-            const isPrevShortHeading = prev.length < 50 && (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{3,50}$/.test(prev) || /^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo)/i.test(prev)) && !/[,;]$/.test(prev);
+            // Check if current line is structural or previous line was a pure heading
+            const isCurrStructural = isStructuralLine(current);
+            const isPrevHead = isHeadingLine(prev);
             
-            if (isBullet || isNumberedList || isSpeaker || isHeader || isPrevShortHeading) {
+            if (isCurrStructural || isPrevHead) {
                 // Keep as separate line within paragraph block
                 merged.push(current);
             } else {
@@ -224,13 +267,10 @@ export function sanitizeClipboardHtml(html) {
             const plainCurrent = current.replace(/<[^>]+>/g, '').trim();
             const plainPrev = prev.replace(/<[^>]+>/g, '').trim();
 
-            const isBullet = /^[-*•+>]\s+/.test(plainCurrent);
-            const isNumberedList = /^(\(?\d+[\.\)]|\(?[a-zA-Z][\.\)]|\d+(\.\d+)+[\.\)]?)\s+/.test(plainCurrent);
-            const isSpeaker = /^[A-ZÁÉÍÓÚÑa-záéíóúñ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{0,25}:(?!\/)\s*/.test(plainCurrent);
-            const isHeader = /^#{1,6}\s+/.test(plainCurrent) || /^<b>[^<]{2,60}<\/b>$/.test(current.trim());
-            const isPrevShortHeading = plainPrev.length < 50 && (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{3,50}$/.test(plainPrev) || /^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo)/i.test(plainPrev)) && !/[,;]$/.test(plainPrev);
+            const isCurrStructural = isStructuralLine(current);
+            const isPrevHead = isHeadingLine(prev);
 
-            if (isBullet || isNumberedList || isSpeaker || isHeader || isPrevShortHeading) {
+            if (isCurrStructural || isPrevHead) {
                 merged.push(current);
             } else {
                 // Soft line break inside paragraph -> Unify!
