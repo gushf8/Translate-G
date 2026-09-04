@@ -759,60 +759,7 @@ async function updateTranslation() {
             }
         }
 
-        // Speaker lines capitalisation and newlines mapping
-        const origLines = rawText.split('\n').map(l => l.trim()).filter(l => l !== '');
-        if (origLines.length > 1) {
-            origLines.forEach((oLine, idx) => {
-                const match = oLine.match(/^([^:]+):/);
-                if (match) {
-                    const speaker = match[1];
-                    const speakerPrefix = speaker.toLowerCase().substring(0, 3);
-                    const regex = new RegExp(`(?<!\\n)\\s?([a-zA-ZáéíóúÁÉÍÓÚ]{3,10}:)`, 'g');
-                    finalTranslation = finalTranslation.replace(regex, (m, p1, offset) => {
-                        if (offset === 0) return p1.trim();
-                        const foundSpeakerPrefix = p1.toLowerCase().substring(0, 3);
-                        if (foundSpeakerPrefix === speakerPrefix) {
-                            return '\n' + p1.trim();
-                        }
-                        return m;
-                    });
-                }
-            });
-        }
-
         finalTranslation = finalTranslation.trim();
-
-        // Capitalize matching speaker names
-        const finalLines = finalTranslation.split('\n');
-        finalTranslation = finalLines.map((tLine, i) => {
-            const tl = tLine.trim();
-            if (!tl) return tLine;
-
-            let resultLine = tLine;
-            const correspondingOrig = origLines.find(ol => {
-                const oMatch = ol.match(/^[^:]+:/);
-                const tMatch = tl.match(/^[^:]+:/);
-                return oMatch && tMatch && oMatch[0].toLowerCase().startsWith(tMatch[0].toLowerCase().substring(0, 3));
-            }) || (origLines.length === finalLines.length ? origLines[i] : null);
-
-            if (correspondingOrig && correspondingOrig[0] === correspondingOrig[0].toUpperCase() && tl[0] === tl[0].toLowerCase()) {
-                resultLine = tl[0].toUpperCase() + tl.substring(1);
-            }
-
-            const tSpeakerMatch = resultLine.match(/^([^:]+):/);
-            if (tSpeakerMatch) {
-                const tSpeaker = tSpeakerMatch[1];
-                const oSpeakerLine = origLines.find(ol => ol.toLowerCase().startsWith(tSpeaker.toLowerCase().substring(0, 3)));
-                if (oSpeakerLine) {
-                    const oSpeakerMatch = oSpeakerLine.match(/^([^:]+):/);
-                    if (oSpeakerMatch) {
-                        const oSpeaker = oSpeakerMatch[1];
-                        resultLine = resultLine.replace(tSpeaker + ':', oSpeaker + ':');
-                    }
-                }
-            }
-            return resultLine;
-        }).join('\n');
 
         // Convert Markdown formatting (e.g. **bold**) if any to HTML tags
         finalTranslation = renderMarkdownFormatting(finalTranslation);
