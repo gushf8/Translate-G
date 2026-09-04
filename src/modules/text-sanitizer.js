@@ -58,60 +58,60 @@ export function cleanOcrAndScanText(text) {
     // Normalize newlines to \n
     let normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
+    // Normalize unicode soft hyphens & non-breaking spaces
+    normalized = normalized.replace(/\u00AD/g, '-').replace(/\u00A0/g, ' ');
+    
     // Fix collapsed line breaks (e.g. "L2O)En" -> "L2O)\nEn")
     normalized = normalized.replace(/\)([A-ZÁÉÍÓÚÑ])/g, ')\n$1');
     // Fix collapsed colon headings e.g. "Óptimos:En lugar" -> "Óptimos:\nEn lugar"
     normalized = normalized.replace(/([:;])([A-ZÁÉÍÓÚÑ])/g, '$1\n$2');
     
-    // Split by double newlines first to keep paragraph structure
-    const paragraphs = normalized.split(/\n\n+/);
+    // Split by 2 or more newlines into distinct paragraph blocks
+    const rawParagraphs = normalized.split(/\n\s*\n+/);
     
-    const cleanedParagraphs = paragraphs.map(para => {
-        let lines = para.split('\n');
-        let cleanedLines = [];
+    const cleanedParagraphs = rawParagraphs.map(para => {
+        const rawLines = para.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (rawLines.length === 0) return '';
         
-        for (let i = 0; i < lines.length; i++) {
-            let currentLine = lines[i].trim();
-            if (currentLine === '') continue;
+        let merged = [];
+        
+        for (let i = 0; i < rawLines.length; i++) {
+            let current = rawLines[i];
             
-            if (cleanedLines.length === 0) {
-                cleanedLines.push(currentLine);
+            if (merged.length === 0) {
+                merged.push(current);
                 continue;
             }
             
-            let prevLine = cleanedLines[cleanedLines.length - 1];
+            let prev = merged[merged.length - 1];
             
-            // Detect if current line starts with a list marker or heading:
-            // Bullet points (-, *, •, o, +, etc.), numbered list (1., 2., a., b., (1), etc.) or heading (#)
-            let isCurrentList = /^[-*•o+>#]\s+/.test(currentLine) || /^\(?\d+[\.\)]\s+/.test(currentLine) || /^[a-zA-Z][\.\)]\s+/.test(currentLine);
+            // Check if current line is a distinct structural item that MUST start a new line:
+            // 1. Bullet point: -, *, •, +, >, etc.
+            const isBullet = /^[-*•+>]\s+/.test(current);
+            // 2. Numbered list: 1., 1), (1), a., a), (a), 1.1, etc.
+            const isNumberedList = /^(\(?\d+[\.\)]|\(?[a-zA-Z][\.\)]|\d+(\.\d+)+[\.\)]?)\s+/.test(current);
+            // 3. Speaker / Dialogue: 'Name:', 'Speaker 1:', 'Q:', 'A:' (ensure not URL like http:)
+            const isSpeaker = /^[A-ZÁÉÍÓÚÑa-záéíóúñ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{0,25}:(?!\/)\s*/.test(current);
+            // 4. Markdown Header: # Header
+            const isHeader = /^#{1,6}\s+/.test(current);
+            // 5. Short standalone title/heading (e.g. CAPITULO I, RESUMEN, ABSTRACT, 1. INTRODUCCION)
+            const isPrevShortHeading = prev.length < 50 && (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{3,50}$/.test(prev) || /^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo)/i.test(prev)) && !/[,;]$/.test(prev);
             
-            // Detect if previous line was a numbered item or heading (e.g. "1. Enfoque...")
-            let prevWasListOrHeading = /^[-*•o+>#]\s+/.test(prevLine) || /^\(?\d+[\.\)]\s+/.test(prevLine) || /^[a-zA-Z][\.\)]\s+/.test(prevLine);
-            
-            // Detect if current line starts with a speaker label (name: text)
-            let isSpeakerLine = /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]{0,20}:/.test(currentLine);
-            
-            // Detect if previous line ends with sentence-terminating punctuation (period, colon, question, exclamation)
-            // Note: Do NOT treat closing parentheses ) or brackets ] as end-of-sentence, because academic stats often wrap lines after (H0) or (p = 0.01)
-            let prevEndsWithPunctuation = /[.!?:;\u201D\u2019»«—–]$/.test(prevLine);
-            
-            // Detect if previous line is very short and ends like a heading/label, not just soft-wrapped text
-            let prevIsShort = prevLine.replace(/<[^>]+>/g, '').length < 40 && prevEndsWithPunctuation;
-            
-            if (isCurrentList || isSpeakerLine || prevWasListOrHeading || prevEndsWithPunctuation || prevIsShort) {
-                // Keep as separate line!
-                cleanedLines.push(currentLine);
+            if (isBullet || isNumberedList || isSpeaker || isHeader || isPrevShortHeading) {
+                // Keep as separate line within paragraph block
+                merged.push(current);
             } else {
-                // Only join if previous line ended with a hyphen (word wrapping) or continuous wrapped sentence
-                if (prevLine.endsWith('-')) {
-                    cleanedLines[cleanedLines.length - 1] = prevLine.slice(0, -1) + currentLine;
+                // Soft line break inside paragraph -> Unify!
+                // Handle hyphenation at line break (e.g. 'meto-\ndológico' -> 'metodológico')
+                if (prev.endsWith('-') && /^[a-záéíóúñ]/i.test(current)) {
+                    merged[merged.length - 1] = prev.slice(0, -1) + current;
                 } else {
-                    cleanedLines[cleanedLines.length - 1] = prevLine + ' ' + currentLine;
+                    merged[merged.length - 1] = prev + ' ' + current;
                 }
             }
         }
         
-        return cleanedLines.join('\n');
+        return merged.join('\n');
     });
     
     // Rejoin paragraphs with double newlines
@@ -121,53 +121,61 @@ export function cleanOcrAndScanText(text) {
 /**
  * Sanitize HTML from clipboard: keep only safe formatting tags.
  * Strips scripts, styles, images, and other dangerous elements.
- * Preserves: b, strong, i, em, u, br, p, div, span, sub, sup
+ * Unifies soft-wrapped lines inside paragraphs while preserving bold, italic, and lists.
  */
-
 export function sanitizeClipboardHtml(html) {
     if (!html) return '';
+
+    // Extract fragment between <!--StartFragment--> and <!--EndFragment--> if present
+    if (html.includes('<!--StartFragment-->')) {
+        const startMarker = '<!--StartFragment-->';
+        const start = html.indexOf(startMarker) + startMarker.length;
+        const end = html.indexOf('<!--EndFragment-->');
+        if (end > start) {
+            html = html.substring(start, end);
+        }
+    }
 
     // Normalize Windows line breaks
     let s = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Remove comments, head, script, style, meta, link
+    // Remove comments, head, script, style, meta, link, xml, office tags
+    s = s.replace(/<!DOCTYPE[^>]*>/gi, '');
     s = s.replace(/<!--[\s\S]*?-->/g, '');
+    s = s.replace(/<\/?(html|body|head|meta|link|xml)[^>]*>/gi, '');
     s = s.replace(/<(script|style|meta|link|head|noscript)[^>]*>[\s\S]*?<\/\1>/gi, '');
     s = s.replace(/<(img|iframe|object|embed|form|input|textarea|select|button)[^>]*>/gi, '');
+    s = s.replace(/<o:p>[\s\S]*?<\/o:p>/gi, '');
+    s = s.replace(/<\/?o:p[^>]*>/gi, '');
 
     // Strip KaTeX / MathML duplicate annotation layers:
-    // When copying from ChatGPT / KaTeX / MathJax, <span class="katex-mathml"> and <annotation> contain hidden TeX annotations
-    // which duplicate the visible text in <span class="katex-html">.
     s = s.replace(/<span\b[^>]*class=["'][^"']*katex-mathml[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
     s = s.replace(/<annotation\b[^>]*>[\s\S]*?<\/annotation>/gi, '');
     s = s.replace(/<math\b[^>]*>[\s\S]*?<\/math>/gi, '');
 
     // Replace headings: ensure clean line breaks and bold
-    s = s.replace(/<h[1-6][^>]*>/gi, '<br><br><b>');
-    s = s.replace(/<\/h[1-6]>/gi, '</b><br>');
+    s = s.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, '\n\n<b>$1</b>\n\n');
 
-    // Replace list items: if already starts with number, just <br>, otherwise bullet
-    s = s.replace(/<li[^>]*>\s*(?=\(?\d+[\.\)])/gi, '<br>');
-    s = s.replace(/<li[^>]*>/gi, '<br>• ');
+    // Replace list items: if already starts with number, just \n, otherwise bullet
+    s = s.replace(/<li[^>]*>\s*(?=\(?\d+[\.\)])/gi, '\n');
+    s = s.replace(/<li[^>]*>/gi, '\n• ');
     s = s.replace(/<\/li>/gi, '');
 
-    // Block elements: div and p
-    s = s.replace(/<\/p>/gi, '<br><br>');
+    // Block elements: div and p -> paragraph breaks (\n\n)
+    s = s.replace(/<\/p>/gi, '\n\n');
     s = s.replace(/<p[^>]*>/gi, '');
-    s = s.replace(/<\/div>/gi, '<br>');
+    s = s.replace(/<\/div>/gi, '\n');
     s = s.replace(/<div[^>]*>/gi, '');
-    s = s.replace(/<\/tr>/gi, '<br>');
+    s = s.replace(/<\/tr>/gi, '\n');
     s = s.replace(/<tr[^>]*>/gi, '');
     s = s.replace(/<td[^>]*>/gi, ' ');
     s = s.replace(/<\/td>/gi, ' ');
-    s = s.replace(/<blockquote[^>]*>/gi, '<br>');
-    s = s.replace(/<\/blockquote>/gi, '<br>');
+    s = s.replace(/<blockquote[^>]*>/gi, '\n\n');
+    s = s.replace(/<\/blockquote>/gi, '\n\n');
 
     // Convert strong -> b, em -> i
-    s = s.replace(/<strong\b[^>]*>/gi, '<b>');
-    s = s.replace(/<\/strong>/gi, '</b>');
-    s = s.replace(/<em\b[^>]*>/gi, '<i>');
-    s = s.replace(/<\/em>/gi, '</i>');
+    s = s.replace(/<strong\b[^>]*>/gi, '<b>').replace(/<\/strong>/gi, '</b>');
+    s = s.replace(/<em\b[^>]*>/gi, '<i>').replace(/<\/em>/gi, '</i>');
 
     // Remove empty spans or unneeded spans
     s = s.replace(/<span[^>]*>\s*<\/span>/gi, '');
@@ -189,15 +197,54 @@ export function sanitizeClipboardHtml(html) {
         return `<${tag.toLowerCase()}>`;
     });
 
-    // Normalize whitespace around <br> to avoid spurious double blank lines
-    s = s.replace(/(\s*<br\s*\/?>[\s\n]*)+/gi, (match) => {
-        const count = (match.match(/<br/gi) || []).length;
-        const newlines = (match.match(/\n/g) || []).length;
-        return (count >= 2 || newlines >= 2) ? '<br><br>' : '<br>';
-    });
-    s = s.replace(/^(<br\s*\/?>\s*)+/gi, '').replace(/(<br\s*\/?>\s*)+$/gi, '');
+    // Normalize double <br> or more to \n\n, single <br> and adjoining whitespace to single \n
+    s = s.replace(/(?:\s*<br\s*\/?>\s*){2,}/gi, '\n\n');
+    s = s.replace(/\s*<br\s*\/?>\s*/gi, '\n');
 
-    return s.trim();
+    // Collapse excess newlines: 3 or more \n into \n\n
+    s = s.replace(/\n{3,}/g, '\n\n');
+
+    // Split by 2 or more newlines into distinct paragraphs and run smart unwrapping
+    const rawParagraphs = s.split(/\n\s*\n+/);
+
+    const cleanedParagraphs = rawParagraphs.map(para => {
+        const rawLines = para.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (rawLines.length === 0) return '';
+
+        let merged = [];
+        for (let i = 0; i < rawLines.length; i++) {
+            let current = rawLines[i];
+            if (merged.length === 0) {
+                merged.push(current);
+                continue;
+            }
+
+            let prev = merged[merged.length - 1];
+
+            const plainCurrent = current.replace(/<[^>]+>/g, '').trim();
+            const plainPrev = prev.replace(/<[^>]+>/g, '').trim();
+
+            const isBullet = /^[-*•+>]\s+/.test(plainCurrent);
+            const isNumberedList = /^(\(?\d+[\.\)]|\(?[a-zA-Z][\.\)]|\d+(\.\d+)+[\.\)]?)\s+/.test(plainCurrent);
+            const isSpeaker = /^[A-ZÁÉÍÓÚÑa-záéíóúñ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{0,25}:(?!\/)\s*/.test(plainCurrent);
+            const isHeader = /^#{1,6}\s+/.test(plainCurrent) || /^<b>[^<]{2,60}<\/b>$/.test(current.trim());
+            const isPrevShortHeading = plainPrev.length < 50 && (/^[A-Z0-9\sÁÉÍÓÚÑ\-:]{3,50}$/.test(plainPrev) || /^(cap[ií]tulo|secci[oó]n|resumen|abstract|introducci[oó]n|conclusi[oó]n|m[eé]todo)/i.test(plainPrev)) && !/[,;]$/.test(plainPrev);
+
+            if (isBullet || isNumberedList || isSpeaker || isHeader || isPrevShortHeading) {
+                merged.push(current);
+            } else {
+                // Soft line break inside paragraph -> Unify!
+                if (plainPrev.endsWith('-') && /^[a-záéíóúñ]/i.test(plainCurrent)) {
+                    merged[merged.length - 1] = prev.replace(/-(<\/?[a-z]+>)*$/, '$1') + current;
+                } else {
+                    merged[merged.length - 1] = prev + ' ' + current;
+                }
+            }
+        }
+        return merged.join('<br>');
+    });
+
+    return cleanedParagraphs.filter(p => p.trim() !== '').join('<br><br>').trim();
 }
 
 export function convertSlackShortcodes(text) {

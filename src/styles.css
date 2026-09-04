@@ -208,8 +208,6 @@ body {
     width: 100vw;
     height: 100vh;
     background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -629,9 +627,9 @@ input:checked + .tf-slider:before {
 
 .tf-text-box {
     flex: 1;
-    font-size: var(--tf-user-font-size, 19px);
-    font-family: var(--tf-user-font, 'Segoe UI', system-ui, -apple-system, sans-serif);
-    line-height: var(--tf-user-line-height, 1.15);
+    font-size: var(--tf-user-font-size, 18px);
+    font-family: var(--tf-user-font, 'Inter', sans-serif);
+    line-height: var(--tf-user-line-height, 1.5);
     color: #202124 !important;
     font-weight: 400;
     padding: 22px 24px;

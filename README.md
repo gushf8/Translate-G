@@ -32,12 +32,17 @@
 ## ⚡ Aspectos Destacados
 
 * **Flujo Instantáneo al estilo DeepL (Doble `Ctrl + C`)**: Selecciona cualquier texto en un navegador, PDF, Word o terminal y presiona **Ctrl + C + C** para abrir la ventana flotante y traducir al instante sin interrumpir tu flujo de trabajo.
+* **Smart Paragraph & Soft-Wrap Unification (PDFs y Word)**: Algoritmo avanzado que detecta y desfragmenta automáticamente saltos de línea artificiales generados al copiar desde visores de PDF o documentos Word, unificando los párrafos de manera fluida y continua sin cortes abruptos de oración.
+* **Reconstrucción Automática de Guiones de Salto (`-\n`)**: Une automáticamente palabras cortadas al final de línea en documentos PDF (ej. `meto-\ndológico` $\rightarrow$ `metodológico`).
+* **Preservación Inteligente de Estructuras**: Respeta estrictamente listas numeradas (`1.`, `2.`, `(a)`), viñetas (`•`, `-`, `*`), etiquetas de diálogo/hablante (`Investigador:`, `Speaker 1:`) y títulos o encabezados independientes.
+* **Limpieza de LaTeX y Artefactos de IA**: Convierte notación matemática de LaTeX y KaTeX a Unicode nativo con subíndices/superíndices HTML (`<sub>`, `<sup>`), elimina anotaciones duplicadas generadas por ChatGPT / MathML y repara acentos flotantes o fragmentados de OCR (`dina´mica` $\rightarrow$ `dinámica`).
+* **Sanitización Profunda de HTML de Word**: Limpia metadatos y etiquetas propietarias de Microsoft Office (`MsoNormal`, `<o:p>`, estilos incrustados) preservando únicamente negritas, cursivas y saltos de párrafo reales.
 * **Sin API Keys**: Conexión directa y eficiente con el motor de Google Translate mediante peticiones ligeras y segmentación inteligente de textos extensos.
 * **Smart Language Swap**: Reconocimiento automático bidireccional de idioma de entrada y destino para alternar sin interrupciones.
+* **Sincronización Oración por Oración (Sentence Sync & Hover)**: Resaltado visual interactivo y sincronizado de oraciones en tiempo real entre el texto original y la traducción al pasar el cursor o reproducir voz.
+* **Voz Neural TTS con Prefetching**: Reproducción de audio de alta fidelidad con voces neurales de Microsoft Edge, cola continua y precarga en segundo plano para pronunciación instantánea sin pausas.
 * **Atajos Globales de Windows**: Hook de teclado nativo en Rust de bajísimo consumo que monitorea pulsaciones globales con total fluidez.
-* **Limpieza Técnica de Texto**: Normalización de saltos de línea irregulares en PDFs, eliminación de espacios superfluos y preservación de sintaxis en fórmulas o fragmentos técnicos.
 * **Consumo Mínimo de Recursos**: Construido sobre Rust y Microsoft WebView2 nativo, garantizando una huella de memoria RAM significativamente inferior frente a alternativas basadas en Electron.
-* **Audio y Pronunciación**: Soporte Text-to-Speech (TTS) integrado para validación fonética inmediata.
 
 ---
 

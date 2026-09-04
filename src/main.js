@@ -60,6 +60,14 @@ let inputTimer = null;
 let currentSession = null;
 let activeSpeakerButton = null;
 
+// TTS Queue & Playback State
+let lastTranslationSourceLang = 'auto';
+let lastTranslationTargetLang = 'es';
+let activeSpeakerSide = null;
+let activeSpeakingButton = null;
+let ttsQueue = [];
+let ttsQueueIndex = -1;
+
 // Initialize elements
 const srcSelect = document.getElementById('tf-src-lang');
 const targetSelect = document.getElementById('tf-target-lang');
@@ -91,9 +99,9 @@ let disableCtrlCOnExtensionDetect = false;
 let currentAudio = null;
 let voiceRate = 1.0;
 let voicePitch = 0.0;
-let currentFontFamily = "'Segoe UI', system-ui, -apple-system, sans-serif";
-let currentLineSpacing = "1.15";
-let currentFontSize = 19;
+let currentFontFamily = "'Inter', sans-serif";
+let currentLineSpacing = "1.5";
+let currentFontSize = 18;
 
 // Start application
 
@@ -112,9 +120,9 @@ async function init() {
         disableCtrlCOnExtensionDetect = settings.disable_ctrl_c_on_extension_detect || false;
         voiceRate = settings.voice_rate !== undefined ? settings.voice_rate : 1.0;
         voicePitch = settings.voice_pitch !== undefined ? settings.voice_pitch : 0.0;
-        currentFontFamily = settings.font_family || "'Segoe UI', system-ui, -apple-system, sans-serif";
-        currentLineSpacing = settings.line_spacing || "1.15";
-        currentFontSize = (settings.font_size !== undefined && settings.font_size >= 10 && settings.font_size <= 36) ? settings.font_size : 19;
+        currentFontFamily = settings.font_family || "'Inter', sans-serif";
+        currentLineSpacing = settings.line_spacing || "1.5";
+        currentFontSize = (settings.font_size !== undefined && settings.font_size >= 10 && settings.font_size <= 36) ? settings.font_size : 18;
 
         // Apply settings in UI
         baseLangSelect.value = baseDefaultTarget;
@@ -518,7 +526,7 @@ function setupEvents() {
             outputAudioBtn.innerHTML = PAUSE_SVG;
             
             // Pre-fetch sentences 1+ while sentence 0 is being synthesized/played
-            startQueuePlayback(ttsQueue, 'original', inputAudioBtn, originalBox, translationBox);
+            startQueuePlayback(ttsQueue, 'translation', outputAudioBtn, originalBox, translationBox);
         }
     };
 

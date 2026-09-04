@@ -37,15 +37,15 @@ pub struct Settings {
 }
 
 fn default_font_family() -> String {
-    "'Segoe UI', system-ui, -apple-system, sans-serif".to_string()
+    "'Inter', sans-serif".to_string()
 }
 
 fn default_line_spacing() -> String {
-    "1.15".to_string()
+    "1.5".to_string()
 }
 
 fn default_font_size() -> u32 {
-    19
+    18
 }
 
 pub struct AppState {

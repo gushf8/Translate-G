@@ -20,9 +20,9 @@ export async function loadSettings() {
             disable_ctrl_c_on_extension_detect: settings.disable_ctrl_c_on_extension_detect || false,
             voice_rate: settings.voice_rate !== undefined ? settings.voice_rate : 1.0,
             voice_pitch: settings.voice_pitch !== undefined ? settings.voice_pitch : 0.0,
-            font_family: settings.font_family || "'Segoe UI', system-ui, -apple-system, sans-serif",
-            line_spacing: settings.line_spacing || "1.15",
-            font_size: (settings.font_size !== undefined && settings.font_size >= 10 && settings.font_size <= 36) ? settings.font_size : 19
+            font_family: settings.font_family || "'Inter', sans-serif",
+            line_spacing: settings.line_spacing || "1.5",
+            font_size: (settings.font_size !== undefined && settings.font_size >= 10 && settings.font_size <= 36) ? settings.font_size : 18
         };
     } catch (e) {
         console.error("Failed to load settings:", e);
@@ -33,9 +33,9 @@ export async function loadSettings() {
             disable_ctrl_c_on_extension_detect: false,
             voice_rate: 1.0,
             voice_pitch: 0.0,
-            font_family: "'Segoe UI', system-ui, -apple-system, sans-serif",
-            line_spacing: "1.15",
-            font_size: 19
+            font_family: "'Inter', sans-serif",
+            line_spacing: "1.5",
+            font_size: 18
         };
     }
 }
@@ -50,9 +50,9 @@ export async function saveSettings(settings) {
                 disable_ctrl_c_on_extension_detect: settings.disable_ctrl_c_on_extension_detect || false,
                 voice_rate: settings.voice_rate !== undefined ? settings.voice_rate : 1.0,
                 voice_pitch: settings.voice_pitch !== undefined ? settings.voice_pitch : 0.0,
-                font_family: settings.font_family || "'Segoe UI', system-ui, -apple-system, sans-serif",
-                line_spacing: settings.line_spacing || "1.15",
-                font_size: settings.font_size || 19
+                font_family: settings.font_family || "'Inter', sans-serif",
+                line_spacing: settings.line_spacing || "1.5",
+                font_size: settings.font_size || 18
             }
         });
     } catch (e) {

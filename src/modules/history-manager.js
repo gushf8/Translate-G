@@ -28,7 +28,7 @@ export function getDateLabel(timestamp) {
 
 export function renderHistoryList(history, historyList, onSelectHistoryItem, onHistoryDeleted) {
     if (!historyList) return;
-    if (!history || history.length === 0) {
+    if (!Array.isArray(history) || history.length === 0) {
         historyList.innerHTML = '<div class="tf-history-empty">No hay historial aún</div>';
         return;
     }

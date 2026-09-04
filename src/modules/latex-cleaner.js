@@ -413,8 +413,8 @@ export function cleanLatexAndAiArtifacts(text) {
 
     // 2. KaTeX / MathJax duplicated math and text artifact:
     // e.g. "causalidad\text{causalidad}" or "paneles sintéticos/pseudo-paneles\text{paneles sintéticos/pseudo-paneles}"
-    // Safely handle KaTeX/MathJax duplicate terms without eating previous words
-    s = s.replace(/([\p{L}\p{N}]+)\s*\\text(?:normal|rm)?\{\1\}/gu, '');
+    // Safely remove the duplicated LaTeX snippet while preserving the original word
+    s = s.replace(/([\p{L}\p{N}]+)\s*\\text(?:normal|rm)?\{\1\}/gu, (match, word) => word);
 
     // 3. Convert all LaTeX math & symbols to Unicode equivalents
     s = convertLatexToUnicode(s);
