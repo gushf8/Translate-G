@@ -818,7 +818,7 @@ input:checked + .tf-slider:before {
 }
 
 .tf-history-header {
-    padding: 0 24px;
+    padding: 0 16px 0 20px;
     font-weight: 800;
     font-size: 13px;
     color: #444746;
@@ -828,7 +828,31 @@ input:checked + .tf-slider:before {
     min-height: 74px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     box-sizing: border-box;
+}
+
+.tf-clear-all-history-btn {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.tf-clear-all-history-btn:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.15);
 }
 
 .tf-history-list {
@@ -873,12 +897,12 @@ input:checked + .tf-slider:before {
 
 .tf-history-item {
     position: relative;
-    padding: 14px 16px;
+    padding: 12px 14px;
     background: #ffffff;
     border: 1px solid #edf2ff;
-    border-radius: 16px;
+    border-radius: 14px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -898,6 +922,7 @@ input:checked + .tf-slider:before {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    padding-right: 6px;
 }
 
 .tf-history-orig { 
@@ -924,19 +949,33 @@ input:checked + .tf-slider:before {
 }
 
 .tf-delete-btn {
-    background: transparent;
-    border: none;
-    opacity: 0;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 8px;
+    opacity: 0.8;
     cursor: pointer;
-    padding: 4px;
+    padding: 5px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-left: 8px;
+    margin-left: 6px;
     outline: none;
     color: #94a3b8;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+}
+
+.tf-history-item:hover .tf-delete-btn {
+    opacity: 1;
+    color: #ef4444;
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+.tf-delete-btn:hover {
+    transform: scale(1.1);
 }
 
 .tf-history-item:hover .tf-delete-btn {

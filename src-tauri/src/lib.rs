@@ -175,6 +175,22 @@ fn delete_history(state: State<'_, Arc<AppState>>, id: u64) -> Vec<HistoryItem> 
 }
 
 #[tauri::command]
+fn clear_history(state: State<'_, Arc<AppState>>) -> Vec<HistoryItem> {
+    let mut history = state.history.lock().unwrap();
+    history.clear();
+    
+    let path = &state.history_path;
+    if let Ok(json) = serde_json::to_string_pretty(&*history) {
+        if let Ok(mut file) = std::fs::File::create(path) {
+            use std::io::Write;
+            let _ = file.write_all(json.as_bytes());
+        }
+    }
+
+    history.clone()
+}
+
+#[tauri::command]
 fn get_settings(state: State<'_, Arc<AppState>>) -> Settings {
     let settings = state.settings.lock().unwrap();
     settings.clone()
@@ -443,6 +459,7 @@ pub fn run() {
             get_history,
             add_history,
             delete_history,
+            clear_history,
             get_settings,
             save_settings,
             toggle_autostart,
