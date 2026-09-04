@@ -91,11 +91,12 @@ export function cleanOcrAndScanText(text) {
             // Detect if current line starts with a speaker label (name: text)
             let isSpeakerLine = /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]{0,20}:/.test(currentLine);
             
-            // Detect if previous line ends with sentence/clause ending punctuation, parenthesis, or quotes
-            let prevEndsWithPunctuation = /[.!?:;\)\]\}\"\'\u201C\u201D\u2018\u2019»«—–]$/.test(prevLine);
+            // Detect if previous line ends with sentence-terminating punctuation (period, colon, question, exclamation)
+            // Note: Do NOT treat closing parentheses ) or brackets ] as end-of-sentence, because academic stats often wrap lines after (H0) or (p = 0.01)
+            let prevEndsWithPunctuation = /[.!?:;\u201D\u2019»«—–]$/.test(prevLine);
             
-            // Detect if previous line is short (like a title, header, or standalone phrase)
-            let prevIsShort = prevLine.replace(/<[^>]+>/g, '').length < 65;
+            // Detect if previous line is very short and ends like a heading/label, not just soft-wrapped text
+            let prevIsShort = prevLine.replace(/<[^>]+>/g, '').length < 40 && prevEndsWithPunctuation;
             
             if (isCurrentList || isSpeakerLine || prevWasListOrHeading || prevEndsWithPunctuation || prevIsShort) {
                 // Keep as separate line!
@@ -172,17 +173,21 @@ export function sanitizeClipboardHtml(html) {
     s = s.replace(/<span[^>]*>\s*<\/span>/gi, '');
     s = s.replace(/<\/?span[^>]*>/gi, '');
 
+    // Protect mathematical/statistical comparisons like '< 0,001', '<= 0.05', '<0.01' or '> 0.05' from being stripped as tags
+    s = s.replace(/<(?=[\s\d=])/g, '&lt;');
+    s = s.replace(/>(?=[\s\d=])/g, '&gt;');
+
     // Strip any other unwanted tags, preserving only safe inline tags
     s = s.replace(new RegExp('<(?!/?(b|i|u|sub|sup|br)\\b)[^>]+>', 'gi'), '');
+
+    // Restore protected mathematical entities
+    s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
     // Clean attributes on remaining tags
     s = s.replace(/<(b|i|u|sub|sup|br)\b[^>]*>/gi, (match, tag) => {
         if (tag.toLowerCase() === 'br') return '<br>';
         return `<${tag.toLowerCase()}>`;
     });
-
-    // Fix collapsed lines: e.g. "L2O)En" -> "L2O)<br>En"
-    s = s.replace(/\)([A-ZÁÉÍÓÚÑ])/g, ')<br>$1');
 
     // Normalize whitespace around <br> to avoid spurious double blank lines
     s = s.replace(/(\s*<br\s*\/?>[\s\n]*)+/gi, (match) => {

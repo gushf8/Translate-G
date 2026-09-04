@@ -369,14 +369,16 @@ export function fixBrokenAccents(text) {
     const umlautVowels = { 'a': 'ä', 'e': 'ë', 'i': 'ï', 'o': 'ö', 'u': 'ü', 'A': 'Ä', 'E': 'Ë', 'I': 'Ï', 'O': 'Ö', 'U': 'Ü' };
 
     // Broken spacing accents: "dina´mica" -> "dinámica", "sinte´ticos" -> "sintéticos"
-    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[´'\u0301\u00B4]/g, (m, l) => acuteVowels[l] || m);
-    s = s.replace(/[´'\u0301\u00B4][\s\u00A0]*([aeiouAEIOU])/g, (m, l) => acuteVowels[l] || m);
+    // Note: Do NOT match standard ASCII apostrophe ' or quote " or comma , or caret ^ as accents!
+    // They corrupt normal text (e.g. contractions like you're, quotes like she "said", commas like ic,, or powers like e^2)
+    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[´\u0301\u00B4]/g, (m, l) => acuteVowels[l] || m);
+    s = s.replace(/[´\u0301\u00B4][\s\u00A0]*([aeiouAEIOU])/g, (m, l) => acuteVowels[l] || m);
 
     s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[`\u0300]/g, (m, l) => graveVowels[l] || m);
     s = s.replace(/([nNaAoO])[\s\u00A0]*[~\u0303]/g, (m, l) => tildeLetters[l] || m);
-    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[\^\u0302]/g, (m, l) => circVowels[l] || m);
-    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[¨"\u0308]/g, (m, l) => umlautVowels[l] || m);
-    s = s.replace(/([cC])[\s\u00A0]*[,çÇ\u0327]/g, (m, l) => l === 'c' ? 'ç' : 'Ç');
+    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[\u0302]/g, (m, l) => circVowels[l] || m);
+    s = s.replace(/([aeiouAEIOU])[\s\u00A0]*[¨\u0308]/g, (m, l) => umlautVowels[l] || m);
+    s = s.replace(/([cC])[\s\u00A0]*[\u0327¸]/g, (m, l) => l === 'c' ? 'ç' : 'Ç');
 
     // LaTeX escaped accents: \'a, \`a, \~n, \^a, \"u, \c{c}, \acute{a}
     s = s.replace(/\\acute\{([aeiouAEIOU])\}/gi, (m, l) => acuteVowels[l] || m);
