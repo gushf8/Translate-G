@@ -1,12 +1,14 @@
 use reqwest::Client;
 use std::sync::OnceLock;
+use serde_json::Value;
 
 static CLIENT: OnceLock<Client> = OnceLock::new();
 
 fn get_client() -> &'static Client {
     CLIENT.get_or_init(|| {
         Client::builder()
-            .user_agent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36")
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+            .timeout(std::time::Duration::from_secs(12))
             .build()
             .unwrap_or_default()
     })
@@ -18,34 +20,31 @@ pub async fn translate(text: &str, sl: &str, tl: &str) -> Result<(String, Option
     }
 
     // Split text into chunks if it is too long (Google Translate limits around 5000 chars)
-    let chunks = split_text(text, 4500);
+    let chunks = split_text(text, 4000);
     let mut results = Vec::new();
     let mut detected_source = None;
+    let client = get_client();
 
     for chunk in chunks {
-        let url = format!(
-            "https://translate.google.com/m?sl={}&tl={}&q={}",
-            sl,
-            tl,
-            url_encode(&chunk)
-        );
+        // 1. Try primary API: dict-chrome-ex (used by Google Chrome extension, returns clean JSON)
+        let res = match request_translate_api(client, &chunk, sl, tl, "dict-chrome-ex").await {
+            Ok(val) => Ok(val),
+            Err(err1) => {
+                // 2. Secondary fallback: client=gtx
+                match request_translate_api(client, &chunk, sl, tl, "gtx").await {
+                    Ok(val) => Ok(val),
+                    Err(_) => {
+                        // 3. Last-resort fallback: mobile web endpoint /m
+                        match request_mobile_web(client, &chunk, sl, tl).await {
+                            Ok(val) => Ok(val),
+                            Err(err3) => Err(format!("{}. Fallback error: {}", err1, err3)),
+                        }
+                    }
+                }
+            }
+        };
 
-        let response = get_client()
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("Network error: {}", e))?;
-
-        if !response.status().is_success() {
-            return Err(format!("Google Translate returned status: {}", response.status()));
-        }
-
-        let html = response
-            .text()
-            .await
-            .map_err(|e| format!("Failed to read response body: {}", e))?;
-
-        let (translated_chunk, detected) = parse_google_html(&html)?;
+        let (translated_chunk, detected) = res?;
         results.push(translated_chunk);
         if detected.is_some() && detected_source.is_none() {
             detected_source = detected;
@@ -53,6 +52,93 @@ pub async fn translate(text: &str, sl: &str, tl: &str) -> Result<(String, Option
     }
 
     Ok((results.join("\n\n"), detected_source))
+}
+
+async fn request_translate_api(
+    client: &Client,
+    text: &str,
+    sl: &str,
+    tl: &str,
+    client_param: &str,
+) -> Result<(String, Option<String>), String> {
+    let url = format!(
+        "https://translate.googleapis.com/translate_a/single?client={}&sl={}&tl={}&dt=t",
+        client_param, sl, tl
+    );
+
+    let response = client
+        .post(&url)
+        .form(&[("q", text)])
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Google Translate API returned status: {}", response.status()));
+    }
+
+    let body_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response body: {}", e))?;
+
+    parse_api_json(&body_text)
+}
+
+fn parse_api_json(raw: &str) -> Result<(String, Option<String>), String> {
+    let val: Value = serde_json::from_str(raw)
+        .map_err(|e| format!("Failed to parse Google API response: {}", e))?;
+
+    // val[0] is an array of segments: [ [ "translated text", "original text", ... ], ... ]
+    let mut translated_text = String::new();
+    if let Some(segments) = val.get(0).and_then(|v| v.as_array()) {
+        for seg in segments {
+            if let Some(part) = seg.get(0).and_then(|v| v.as_str()) {
+                translated_text.push_str(part);
+            }
+        }
+    } else {
+        return Err("Unexpected Google API JSON structure".to_string());
+    }
+
+    // val[2] is detected source language code, e.g. "es"
+    let detected_lang = val.get(2)
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty() && *s != "auto")
+        .map(|s| s.to_string());
+
+    Ok((translated_text, detected_lang))
+}
+
+async fn request_mobile_web(
+    client: &Client,
+    text: &str,
+    sl: &str,
+    tl: &str,
+) -> Result<(String, Option<String>), String> {
+    let url = format!(
+        "https://translate.google.com/m?sl={}&tl={}&q={}",
+        sl,
+        tl,
+        url_encode(text)
+    );
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Google Translate returned status: {}", response.status()));
+    }
+
+    let html = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response body: {}", e))?;
+
+    parse_google_html(&html)
 }
 
 fn parse_google_html(html: &str) -> Result<(String, Option<String>), String> {

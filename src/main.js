@@ -242,16 +242,19 @@ function setupEvents() {
 
     // Select dropdowns
     srcSelect.onchange = (e) => {
+        clearTimeout(inputTimer);
         currentSource = e.target.value;
         updateTranslation();
     };
     targetSelect.onchange = (e) => {
+        clearTimeout(inputTimer);
         currentTarget = e.target.value;
         updateTranslation();
     };
 
     // Swap Button
     document.querySelector('.tf-swap-btn').onclick = () => {
+        clearTimeout(inputTimer);
         const oldSrc = srcSelect.value;
         const oldTarget = targetSelect.value;
         if (oldSrc === 'auto') {
@@ -457,7 +460,7 @@ function setupEvents() {
         clearTimeout(inputTimer);
         inputTimer = setTimeout(() => {
             updateTranslation();
-        }, 250);
+        }, 350);
     };
 
     // TTS voice reproduction original
@@ -589,6 +592,7 @@ function setupEvents() {
     // Quick Language select buttons
     document.querySelectorAll('.tf-quick-btn').forEach(btn => {
         btn.onclick = () => {
+            clearTimeout(inputTimer);
             const lang = btn.dataset.lang;
             const side = btn.dataset.side;
             if (side === 'src') {
