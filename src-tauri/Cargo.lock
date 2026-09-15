@@ -4576,7 +4576,7 @@ dependencies = [
 
 [[package]]
 name = "translate-g"
-version = "1.0.0"
+version = "1.0.2"
 dependencies = [
  "axum",
  "edge-tts-rust",
