@@ -71,7 +71,7 @@ fn load_history(path: &PathBuf) -> Vec<HistoryItem> {
     serde_json::from_str(&data).unwrap_or_else(|_| Vec::new())
 }
 
-fn save_history(path: &PathBuf, history: &[HistoryItem]) {
+pub fn save_history(path: &PathBuf, history: &[HistoryItem]) {
     if let Ok(json) = serde_json::to_string_pretty(history) {
         if let Ok(mut file) = File::create(path) {
             let _ = file.write_all(json.as_bytes());

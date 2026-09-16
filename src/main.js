@@ -652,6 +652,11 @@ function setupTauriListeners() {
     listen('trigger-ocr', () => {
         triggerOCR();
     });
+
+    // Listen for in-place translations to refresh history
+    listen('history-updated', async () => {
+        await loadAndRenderHistory(historyList, onSelectHistoryItem, onHistoryDeleted);
+    });
 }
 
 function loadTextAndTranslate(content) {

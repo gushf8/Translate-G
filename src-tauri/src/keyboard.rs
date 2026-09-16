@@ -17,7 +17,7 @@ use windows::Win32::System::DataExchange::{
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use tauri::Emitter;
 
-use crate::server::AppState;
+use crate::server::{AppState, HistoryItem};
 use crate::translate::translate;
 use crate::ocr;
 
@@ -140,8 +140,11 @@ unsafe extern "system" fn keyboard_hook_callback(
                 }
             }
 
-            // 2. Ctrl + Shift + Z (vk_code 0x5A is 'Z') -> Swap
-            if (vk_code == 0x5A || vk_code == 0x7A) && ctrl_pressed && shift_pressed {
+            // 2. Ctrl + Shift + V (vk_code 0x56 is 'V') or Ctrl + Shift + Z (0x5A) -> Swap/Replace selection in place
+            if ((vk_code == 0x56 || vk_code == 0x76) || (vk_code == 0x5A || vk_code == 0x7A))
+                && ctrl_pressed
+                && shift_pressed
+            {
                 trigger_in_place_swap();
                 return LRESULT(1); // Swallow the keypress
             }
@@ -238,15 +241,19 @@ fn trigger_in_place_swap() {
     tauri::async_runtime::spawn(async move {
         unsafe {
             IS_SIMULATING_INPUT = true;
-            
-            // 1. Save original clipboard text
+
+            // 1. Release shift key if physically held so simulated Ctrl+C doesn't register as Ctrl+Shift+C
+            release_shift_key();
+            tokio::time::sleep(Duration::from_millis(60)).await;
+
+            // 2. Save original clipboard text
             let original_clipboard = get_clipboard_text();
 
-            // 2. Simulate Ctrl + C to copy selection
+            // 3. Simulate Ctrl + C to copy selection
             send_key_combination(&[VK_CONTROL, VIRTUAL_KEY(0x43)]);
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(Duration::from_millis(150)).await;
 
-            // 3. Read selection text
+            // 4. Read selection text
             if let Some(selection) = get_clipboard_text() {
                 if !selection.trim().is_empty() {
                     // Get translation configuration from settings
@@ -264,7 +271,7 @@ fn trigger_in_place_swap() {
                         ("auto".to_string(), settings.base_lang.clone())
                     };
 
-                    // 4. Translate text
+                    // 5. Translate text
                     if let Ok((mut translation, _)) = translate(&selection, &source_lang, &target_lang).await {
                         // If translation returned identical text to selection and source was auto, swap target
                         if translation.trim().eq_ignore_ascii_case(selection.trim()) && selection.trim().len() > 1 {
@@ -278,24 +285,93 @@ fn trigger_in_place_swap() {
                             }
                         }
 
-                        // 5. Write translation to clipboard
+                        // 6. Write translation to clipboard
                         set_clipboard_text(&translation);
 
-                        // 6. Simulate Ctrl + V to paste translation
+                        // 7. Ensure shift is released and simulate Ctrl + V to paste translation
+                        release_shift_key();
+                        tokio::time::sleep(Duration::from_millis(40)).await;
                         send_key_combination(&[VK_CONTROL, VIRTUAL_KEY(0x56)]);
                         tokio::time::sleep(Duration::from_millis(150)).await;
+
+                        // 8. Add to history so user can see it in Translate G
+                        if let Some(state) = APP_STATE.get() {
+                            let mut history = state.history.lock().unwrap();
+                            let now_ms = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_millis() as u64;
+                            let new_item = HistoryItem {
+                                id: now_ms,
+                                original: selection.clone(),
+                                translation: translation.clone(),
+                                timestamp: format!("{}", now_ms),
+                            };
+                            history.insert(0, new_item);
+                            if history.len() > 50 {
+                                history.truncate(50);
+                            }
+                            crate::server::save_history(&state.history_path, &history);
+
+                            if let Some(handle) = TAURI_HANDLE.get() {
+                                let _ = handle.emit("history-updated", ());
+                            }
+                        }
                     }
                 }
             }
 
-            // 7. Restore original clipboard
+            // 9. Restore original clipboard
             if let Some(orig) = original_clipboard {
+                tokio::time::sleep(Duration::from_millis(100)).await;
                 set_clipboard_text(&orig);
             }
 
             IS_SIMULATING_INPUT = false;
         }
     });
+}
+
+unsafe fn release_shift_key() {
+    let inputs = [
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: VK_SHIFT,
+                    wScan: 0,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        },
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: VIRTUAL_KEY(0xA0), // VK_LSHIFT
+                    wScan: 0,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        },
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: VIRTUAL_KEY(0xA1), // VK_RSHIFT
+                    wScan: 0,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        },
+    ];
+    SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
 }
 
 fn guess_language(text: &str) -> Option<String> {
